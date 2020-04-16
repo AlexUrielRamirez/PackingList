@@ -30,6 +30,7 @@ import com.symbol.emdk.barcode.StatusData;
 
 import android.annotation.SuppressLint;
 import android.app.Activity;
+import android.content.Intent;
 import android.os.Bundle;
 import android.text.Html;
 import android.text.method.ScrollingMovementMethod;
@@ -43,11 +44,13 @@ import android.widget.ArrayAdapter;
 import android.widget.CheckBox;
 import android.widget.CompoundButton;
 import android.widget.CompoundButton.OnCheckedChangeListener;
+import android.widget.EditText;
 import android.widget.ScrollView;
 import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.AdapterView.OnItemSelectedListener;
 import android.content.pm.ActivityInfo;
+import android.widget.Toast;
 
 public class MainActivity extends Activity implements EMDKListener, DataListener, StatusListener, ScannerConnectionListener, OnCheckedChangeListener {
 
@@ -77,6 +80,9 @@ public class MainActivity extends Activity implements EMDKListener, DataListener
     private boolean bExtScannerDisconnected = false;
     private final Object lock = new Object();
 
+    private EditText et_codigobarra;
+    private TextView btnContinuar;
+
     @SuppressLint("SourceLockedOrientationActivity")
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -87,6 +93,18 @@ public class MainActivity extends Activity implements EMDKListener, DataListener
         setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
         setDefaultOrientation();
 
+        et_codigobarra = findViewById(R.id.et_codigobarra);
+        btnContinuar = findViewById(R.id.btn_aceptar);
+        btnContinuar.setOnClickListener(v->{
+
+            if(et_codigobarra.getText().length() > 0){
+                startResults();
+            }else{
+                Toast.makeText(this, "Por favor, introduzca el código de barra", Toast.LENGTH_SHORT).show();
+            }
+
+
+        });
         textViewData = (TextView)findViewById(R.id.textViewData);
         textViewStatus = (TextView)findViewById(R.id.textViewStatus);
         checkBoxEAN8 = (CheckBox)findViewById(R.id.checkBoxEAN8);
@@ -110,6 +128,14 @@ public class MainActivity extends Activity implements EMDKListener, DataListener
 
         textViewData.setSelected(true);
         textViewData.setMovementMethod(new ScrollingMovementMethod());
+    }
+
+    public void startResults(){
+        Intent i = new Intent(MainActivity.this, Resultados.class);
+
+        i.putExtra("caja", et_codigobarra.getText().toString());
+
+        startActivity(i);
     }
 
     @Override
@@ -175,7 +201,8 @@ public class MainActivity extends Activity implements EMDKListener, DataListener
             ArrayList <ScanData> scanData = scanDataCollection.getScanData();
             for(ScanData data : scanData) {
                 /*Código*/
-                Log.e("Data",data.getData());
+                et_codigobarra.setText(data.getData());
+                startResults();
                 updateData("<font color='gray'>" + data.getLabelType() + "</font> : " + data.getData());
             }
         }
