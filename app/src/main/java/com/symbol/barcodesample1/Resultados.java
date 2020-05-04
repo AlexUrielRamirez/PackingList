@@ -1,10 +1,13 @@
 package com.symbol.barcodesample1;
 
 import android.app.ProgressDialog;
+import android.os.AsyncTask;
+import android.os.StrictMode;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
+
 import android.util.Log;
 import android.view.View;
 import android.widget.TextView;
@@ -17,6 +20,9 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.io.DataOutputStream;
+import java.io.IOException;
+import java.net.Socket;
 import java.util.ArrayList;
 
 import static com.symbol.barcodesample1.GlobalPreferences.URL;
@@ -90,7 +96,10 @@ public class Resultados extends AppCompatActivity {
         Caja = getIntent().getStringExtra("caja");
         btn_imprimir = findViewById(R.id.btn_imprimir);
         btn_imprimir.setOnClickListener(v->{
-            /*Código de impresión*/
+
+            Impresion impresion = new Impresion();
+            impresion.print(this);
+
         });
         txtNumeroCaja.setText(Caja);
     }
