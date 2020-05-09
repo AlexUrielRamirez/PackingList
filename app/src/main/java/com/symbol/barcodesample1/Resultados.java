@@ -11,6 +11,7 @@ import android.support.v7.widget.RecyclerView;
 import android.util.Log;
 import android.view.View;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import com.android.volley.Request;
 import com.android.volley.toolbox.JsonObjectRequest;
@@ -40,13 +41,13 @@ import static com.symbol.barcodesample1.GlobalPreferences.URL;
 
 public class Resultados extends AppCompatActivity {
 
-    private TextView txtNumeroCaja, txtError, btn_imprimir,
+    public static  TextView txtNumeroCaja, txtError, btn_imprimir,
     OC, TIPOPEDIDO, TIENDA, LUGARENTREGA, MATGROUP, REFERENCIA, NOPROVEEDOR, FENTREGA;
     private RecyclerView rvData;
-    private ArrayList<ModelList> main_list;
+    public static ArrayList<ModelList> main_list;
     private ProgressDialog progressDialog;
     private rvAdapter adapter;
-    private String Caja;
+    public static String Caja;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -142,7 +143,7 @@ public class Resultados extends AppCompatActivity {
         });
     }
 
-    private void initViews() {
+    public void initViews() {
 
         OC = findViewById(R.id.OC);
         TIPOPEDIDO = findViewById(R.id.TIPODEPEDIDO);

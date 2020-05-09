@@ -5,6 +5,7 @@ import android.app.ProgressDialog;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.os.AsyncTask;
+import android.util.AndroidRuntimeException;
 import android.util.Log;
 import android.view.View;
 import android.widget.Toast;
@@ -17,9 +18,21 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.io.BufferedReader;
+import java.io.DataOutputStream;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.net.Socket;
+import java.net.UnknownHostException;
 import java.util.ArrayList;
+
+import retrofit.Callback;
+import retrofit.RestAdapter;
+import retrofit.RetrofitError;
+import retrofit.client.Response;
+import retrofit.http.Field;
+import retrofit.http.FormUrlEncoded;
+import retrofit.http.POST;
 
 import static com.symbol.barcodesample1.GlobalPreferences.URL;
 
@@ -27,12 +40,30 @@ public class Impresion {
 
     private ProgressDialog progressDialog;
      private ArrayList<ModelList> main_list;
+     String Caja = Resultados.Caja;
+
+    private interface api_network_enviar_params{
+        @FormUrlEncoded
+        @POST("/printDiseño.php")
+        void setData(
+                @Field("Caja") String Caja,
+                @Field("RazonSocial") String RazonSocial,
+                @Field("OC") String OC,
+                @Field("MatGroup") String MatGroup,
+                @Field("Referencia") String Referencia,
+                @Field("Tienda") String Tienda,
+                @Field("Proveedor") String Proveedor,
+                @Field("Lugar") String Lugar,
+                @Field("Fecha") String Fecha,
+
+                Callback<Response> callback
+        );
+    }
 
     public  void print(Context context){
         progressDialog = new ProgressDialog(context);
         progressDialog.setMessage("Consultando impresoras, por favor espere...");
         progressDialog.show();
-
         Volley.newRequestQueue(context).add(new JsonObjectRequest(Request.Method.GET, URL+"getPrints.php", null, response -> {
             JSONArray json= response.optJSONArray("Data");
             main_list = new ArrayList<>();
@@ -63,7 +94,11 @@ public class Impresion {
                 builder.setItems(listNombres, new DialogInterface.OnClickListener() {
                     @Override
                     public void onClick(DialogInterface dialog, int which) {
-                        sendWork(main_list.get(which).getIP(), context); //Enviar la impresion a la dirección IP de impresora seleccionada
+                        try {
+                            sendWork(main_list.get(which).getIP(), context); //Enviar la impresion a la dirección IP de impresora seleccionada
+                        } catch (JSONException e) {
+                            e.printStackTrace();
+                        }
                     }
                 });
                 builder.show();
@@ -83,27 +118,86 @@ public class Impresion {
 
     }
 
-    private void sendWork(String IP, Context context){
+    public void sendWork(String IP, Context context) throws JSONException {
+
+        new RestAdapter.Builder().setEndpoint(URL).build().create(api_network_enviar_params.class).setData(
+                Caja, Resultados.main_list.get(0).getRazonSocial(), Resultados.OC.getText().toString(),
+                Resultados.MATGROUP.getText().toString(), Resultados.REFERENCIA.getText().toString(),
+                Resultados.TIENDA.getText().toString(), Resultados.NOPROVEEDOR.getText().toString(),
+                Resultados.LUGARENTREGA.getText().toString(), Resultados.FENTREGA.getText().toString(),
+                new Callback<Response>() {
+                    @Override
+                    public void success(Response response, Response response2) {
+                        try {
+                            BufferedReader br = new BufferedReader(new InputStreamReader(response.getBody().in()));
+                            String Res = br.readLine();
+
+                            StringBuffer zplres = new StringBuffer();
+
+                            while (Res!=null){
+                                zplres.append(Res);
+                                Res = br.readLine();
+
+                            }
+                            Log.e("zpl", zplres.toString());
+                            printWork(IP, zplres.toString(), context);
+                        } catch (NullPointerException | IOException e) {
+                            e.printStackTrace();
+                        }
+                    }
+
+                    @Override
+                    public void failure(RetrofitError error) {
+                        Toast.makeText(context, "Error, revise su conexión", Toast.LENGTH_SHORT).show();
+                    }
+                });
+
+
+                        /*if (clientSocket.isConnected()) {
+
+                                if (Resultados.main_list.size() <= 4)
+                                    Log.e("impresión", "de 1 a 4");
+                                else if (Resultados.main_list.size() >= 5 && Resultados.main_list.size() <= 8)
+                                    Log.e("impresión", "de 5 a 8");
+                                else if (Resultados.main_list.size() >= 9 && Resultados.main_list.size() <= 12)
+                                    Log.e("impresión", "de 9 a 12");
+                                else if (Resultados.main_list.size() >= 13 && Resultados.main_list.size() <= 16)
+                                    Log.e("impresión", "de 13 a 16");
+                                else if (Resultados.main_list.size() >= 17 && Resultados.main_list.size() <= 20)
+                                    Log.e("impresión", "de 17 a 20");
+                            }*/
+
+
+
+
+
+
+    }
+
+
+    public void printWork(String IP, String Respuesta, Context context){
         AsyncTask.execute(new Runnable() {
+
             @Override
             public void run() {
                 try {
-                    Socket clientSocket=new Socket(IP,6101);  //Especificar dirección IP de destino
+                    Socket clientSocket = new Socket(IP, 6101);  //Especificar dirección IP de destino
+                    DataOutputStream outToServer = new DataOutputStream(clientSocket.getOutputStream());
 
-                    if(clientSocket.isConnected()){
-                        Toast.makeText(context, "Oki", Toast.LENGTH_SHORT).show();
-                    }
+                    outToServer.writeBytes(Respuesta);
 
-                } catch (IOException e) {
-                    e.printStackTrace();
-                    Alert.show("Error", "Impresora no disponible", context);
+                    clientSocket.close();
 
+                } catch (UnknownHostException ex) {
+                    ex.printStackTrace();
 
+                } catch (IOException ex) {
+                    ex.printStackTrace();
                 }
             }
         });
-
     }
+
 
 
     public class ModelList{
@@ -135,4 +229,6 @@ public class Impresion {
             this.IP = IP;
         }
     }
+
+
 }
